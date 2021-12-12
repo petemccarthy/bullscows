@@ -3,6 +3,9 @@
 This is an implementation of the game **Bulls and Cows** using SnarkyJS
 For detailed explaination of the game check [here](https://pages.github.com/)
 
+I built out a vanilla javascript version of the game [here](https://replit.com/@PeteMcCarthy1/bullsandcows#index.html)
+This is just an example.  Please run the file in this repository to see functionality in the console.
+
 ## How to play
 1. Contract is deployed, the deployer picks a secret, 4 digit, number.
 2. Anyone can try to guess the secret and they have 5 rounds to do it.
