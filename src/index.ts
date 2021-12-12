@@ -40,21 +40,16 @@ function getScore(secret: string, guess: string): number[] {
 
   return [bulls, cows];
 }
-function isOver(round: number, bulls: number, cows: number, secret: string) {
-  if (bulls === secret.length) {
+function isWon(round: number, bulls: number) {
+  if (bulls === 4) {
     console.log('You found all the bulls, you win!!!');
     return true;
-  } else if (round === 5) {
-    console.log('That was your last guess, you lose!');
-    return true;
+  } else {
+    return false;
   }
-
-  return false;
 }
 
 // }
-// const snappPrivkey = PrivateKey.random();
-// const snappPubkey = snappPrivkey.toPublicKey();
 
 class BullsCows extends SmartContract {
   // This is not a state variable but a contract parameter
@@ -65,11 +60,15 @@ class BullsCows extends SmartContract {
   @state(Field) cowScore: State<Field>;
   @state(Field) currentRound: State<Field>;
   @state(Bool) gameOver: State<Bool>;
-
-  // @state(PublicKey) player: State<PublicKey>    ??Should I assign player to state?  I want to limit who can play once game starts
+  @state(Bool) gameWon: State<Bool>;
+  @state(PublicKey) winner: State<PublicKey>;
 
   static get maxRounds(): Field {
     return new Field(5);
+  }
+
+  static get Prize(): UInt64 {
+    return UInt64.fromNumber(5000);
   }
 
   constructor(initialBalance: UInt64, address: PublicKey, secret: Field) {
@@ -81,6 +80,8 @@ class BullsCows extends SmartContract {
     this.currentRound = State.init(new Field(0));
     this.bullScore = State.init(new Field(0));
     this.cowScore = State.init(new Field(0));
+    this.gameWon = State.init(new Bool(false));
+    this.winner = State.init(address);
   }
 
   @method async startGame() {
@@ -90,13 +91,12 @@ class BullsCows extends SmartContract {
     console.log('Game started!');
   }
 
-  @method async playRound(guess: Field) {
+  @method async playRound(guess: Field, guesser: PublicKey) {
     //make sure the game isn't over
     let currentRound = await this.currentRound.get();
     const gameOver = await this.gameOver.get();
     gameOver.assertEquals(false);
     currentRound.assertLte(BullsCows.maxRounds);
-
     //start round
     Circuit.asProver(() => {
       console.log(`Round ${currentRound.toString()}`);
@@ -118,19 +118,19 @@ class BullsCows extends SmartContract {
       this.cowScore.set(new Field(score[1]));
       console.log(`SCORE [BULLS:${score[0]} COWS:${score[1]}]`);
       //check to see if the game is over
-      let gameOver = isOver(
-        parseInt(currentRound.toString()),
-        score[0],
-        score[1],
-        this.secret.toString()
-      );
-      if (gameOver) {
+
+      if (isWon(parseInt(currentRound.toString()), score[0])) {
         this.gameOver.set(new Bool(true));
+        this.gameWon.set(new Bool(true));
+        //assign publicKey to winner
+        // this.winner.set(guesser)
         console.log('Thanks for playing');
         console.log(`The secret was ${this.secret.toString()}`);
       } else {
         console.log('Play another round?');
-        //move on to the next round
+        //check and see if game is over
+
+        //if game isn't over move to next round
         this.currentRound.set(currentRound.add(1));
       }
     });
@@ -178,7 +178,7 @@ export async function run() {
 
   await Mina.transaction(account2, async () => {
     //there is a bug when trying to pass in a guess that leads in 0s ie '0001' only gets recorded as '1'
-    await snappInstance.playRound(new Field('1235'));
+    await snappInstance.playRound(new Field('1234'), account2Pubkey);
   })
     .send()
     .wait()
@@ -193,6 +193,8 @@ export async function run() {
     console.log(`@state cowScore: ${a.snapp.appState[2].toString()}`);
     console.log(`@state currentRound:${a.snapp.appState[3].toString()}`);
     console.log(`@state gameOver:${a.snapp.appState[4].toString()}`);
+    console.log(`@state gameWon:${a.snapp.appState[5].toString()}`);
+    console.log(`@state winner:${a.snapp.appState[6].toString()}`);
     console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
   });
 
