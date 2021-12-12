@@ -4,7 +4,9 @@
 This is an implementation of the game **Bulls and Cows** using SnarkyJS
 For detailed explaination of the game check [here](https://pages.github.com/)
 
-I built out a vanilla javascript version of the game [here](https://replit.com/@PeteMcCarthy1/bullsandcows#index.html)
+**Smart Contract** code can be found [here](https://github.com/petemccarthy/bullscows/blob/main/src/index.ts) with comments.
+
+I also built out a vanilla javascript version of the game [here](https://replit.com/@PeteMcCarthy1/bullsandcows#index.html)
 This is just an example.  Please run the file in this repository to see functionality in the console.
 
 ## How to play
