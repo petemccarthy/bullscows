@@ -123,7 +123,7 @@ class BullsCows extends SmartContract {
         this.gameOver.set(new Bool(true));
         this.gameWon.set(new Bool(true));
         //assign publicKey to winner
-        // this.winner.set(guesser)
+        this.winner.set(guesser);
         console.log('Thanks for playing');
         console.log(`The secret was ${this.secret.toString()}`);
       } else {
@@ -135,6 +135,18 @@ class BullsCows extends SmartContract {
       }
     });
   }
+  @method async claimPrize(winner: PrivateKey) {
+    //check to make sure the private key matches the public key of winner
+    const claimPubKey = winner.toPublicKey();
+    const winnerPubKey = await this.winner.get();
+    const claim: Bool = claimPubKey.equals(winnerPubKey);
+    claim.assertEquals(true);
+    console.log('Sending funds...');
+    //   send funds to winner
+    this.balance.subInPlace(BullsCows.Prize);
+    //   change state of address back to contract pubkey
+    this.winner.set(this.address);
+  }
 }
 
 export async function run() {
@@ -145,7 +157,7 @@ export async function run() {
   const account1 = Local.testAccounts[0].privateKey;
   const account2 = Local.testAccounts[1].privateKey;
   const account1PubKey = account1.toPublicKey();
-  const account2Pubkey = account2.toPublicKey();
+  const account2PubKey = account2.toPublicKey();
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
@@ -169,6 +181,8 @@ export async function run() {
   // Start the game
   await Mina.transaction(account2, async () => {
     await snappInstance.startGame();
+    const winner = Party.createUnsigned(account2PubKey);
+    winner.balance.addInPlace(BullsCows.Prize);
   })
     .send()
     .wait()
@@ -178,11 +192,21 @@ export async function run() {
 
   await Mina.transaction(account2, async () => {
     //there is a bug when trying to pass in a guess that leads in 0s ie '0001' only gets recorded as '1'
-    await snappInstance.playRound(new Field('1234'), account2Pubkey);
+    await snappInstance.playRound(new Field('1234'), account2PubKey);
   })
     .send()
     .wait()
     .catch((e) => console.log('making guess failed'));
+
+  // Claim Prize!!!
+
+  await Mina.transaction(account2, async () => {
+    //there is a bug when trying to pass in a guess that leads in 0s ie '0001' only gets recorded as '1'
+    await snappInstance.claimPrize(account2);
+  })
+    .send()
+    .wait()
+    .catch((e) => console.log('claiming prize failed'));
 
   //log state of app
   const a = await Mina.getAccount(snappPubkey);
