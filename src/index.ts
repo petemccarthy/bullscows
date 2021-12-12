@@ -127,11 +127,12 @@ class BullsCows extends SmartContract {
         console.log('Thanks for playing');
         console.log(`The secret was ${this.secret.toString()}`);
       } else {
-        console.log('Play another round?');
-        //check and see if game is over
-
+        //check and see if that was last round
+        const isLast: Bool = currentRound.equals(BullsCows.maxRounds);
+        isLast.assertEquals(false);
         //if game isn't over move to next round
         this.currentRound.set(currentRound.add(1));
+        console.log('Play another round?');
       }
     });
   }
@@ -181,8 +182,6 @@ export async function run() {
   // Start the game
   await Mina.transaction(account2, async () => {
     await snappInstance.startGame();
-    const winner = Party.createUnsigned(account2PubKey);
-    winner.balance.addInPlace(BullsCows.Prize);
   })
     .send()
     .wait()
@@ -203,6 +202,8 @@ export async function run() {
   await Mina.transaction(account2, async () => {
     //there is a bug when trying to pass in a guess that leads in 0s ie '0001' only gets recorded as '1'
     await snappInstance.claimPrize(account2);
+    const winner = Party.createUnsigned(account2PubKey);
+    winner.balance.addInPlace(BullsCows.Prize);
   })
     .send()
     .wait()
@@ -227,24 +228,3 @@ export async function run() {
 
 run();
 shutdown();
-
-// export function playRound() {
-//   //submit value for score
-//   let guess = input.value
-//   let score = getScore(secret, guess)
-//   bulls = score[0]
-//   cows = score[1]
-//   //create and display result
-//   let result = document.createElement('div')
-//   result.innerText = `Round ${round} Guess: ${guess} 🐂${bulls} 🐄${cows}]`
-//   results.append(result)
-//   //check to see if game is over
-//   if (isOver(round)) {
-//       submit.remove()
-//       input.remove()
-//       body.append(startBtn)
-//   }
-//   //get ready for next round
-//   round++
-//   input.value = ''
-// }
