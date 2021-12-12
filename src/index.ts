@@ -40,7 +40,17 @@ function getScore(secret: string, guess: string): number[] {
 
   return [bulls, cows];
 }
-// function evalGuess(guess: Field) {
+function isOver(round: number, bulls: number, cows: number, secret: string) {
+  if (bulls === secret.length) {
+    console.log('You found all the bulls, you win!!!');
+    return true;
+  } else if (round === 5) {
+    console.log('That was your last guess, you lose!');
+    return true;
+  }
+
+  return false;
+}
 
 // }
 // const snappPrivkey = PrivateKey.random();
@@ -54,7 +64,7 @@ class BullsCows extends SmartContract {
   @state(Field) bullScore: State<Field>;
   @state(Field) cowScore: State<Field>;
   @state(Field) currentRound: State<Field>;
-  @state(Bool) gameDone: State<Bool>;
+  @state(Bool) gameOver: State<Bool>;
 
   // @state(PublicKey) player: State<PublicKey>    ??Should I assign player to state?  I want to limit who can play once game starts
 
@@ -67,7 +77,7 @@ class BullsCows extends SmartContract {
     this.balance.addInPlace(initialBalance);
     this.secret = secret;
     this.lastGuess = State.init(new Field(0));
-    this.gameDone = State.init(new Bool(false));
+    this.gameOver = State.init(new Bool(false));
     this.currentRound = State.init(new Field(0));
     this.bullScore = State.init(new Field(0));
     this.cowScore = State.init(new Field(0));
@@ -83,13 +93,14 @@ class BullsCows extends SmartContract {
   @method async playRound(guess: Field) {
     //make sure the game isn't over
     let currentRound = await this.currentRound.get();
-    const gameDone = await this.gameDone.get();
-    gameDone.assertEquals(false);
+    const gameOver = await this.gameOver.get();
+    gameOver.assertEquals(false);
     currentRound.assertLte(BullsCows.maxRounds);
 
     //start round
     Circuit.asProver(() => {
       console.log(`Round ${currentRound.toString()}`);
+      console.log('######################');
     });
 
     //check the guess make sure its correct length
@@ -99,22 +110,30 @@ class BullsCows extends SmartContract {
     this.lastGuess.set(guess);
     //check guess and return score
     Circuit.asProver(() => {
-      console.log(`checking guess....`);
-    });
-    Circuit.asProver(() => {
       console.log(`You guessed ${guess.toString()}`);
       let secret = this.secret.toString();
       let myGuess = guess.toString();
       let score = getScore(secret, myGuess);
-      console.log(score);
       this.bullScore.set(new Field(score[0]));
       this.cowScore.set(new Field(score[1]));
+      console.log(`SCORE [BULLS:${score[0]} COWS:${score[1]}]`);
+      //check to see if the game is over
+      let gameOver = isOver(
+        parseInt(currentRound.toString()),
+        score[0],
+        score[1],
+        this.secret.toString()
+      );
+      if (gameOver) {
+        this.gameOver.set(new Bool(true));
+        console.log('Thanks for playing');
+        console.log(`The secret was ${this.secret.toString()}`);
+      } else {
+        console.log('Play another round?');
+        //move on to the next round
+        this.currentRound.set(currentRound.add(1));
+      }
     });
-
-    //give back score
-
-    //check to see if the game is over
-    //move on to the next round
   }
 }
 
@@ -159,7 +178,7 @@ export async function run() {
 
   await Mina.transaction(account2, async () => {
     //there is a bug when trying to pass in a guess that leads in 0s ie '0001' only gets recorded as '1'
-    await snappInstance.playRound(new Field('1032'));
+    await snappInstance.playRound(new Field('1235'));
   })
     .send()
     .wait()
@@ -168,11 +187,13 @@ export async function run() {
   //log state of app
   const a = await Mina.getAccount(snappPubkey);
   Circuit.asProver(() => {
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
     console.log(`@state lastGuess: ${a.snapp.appState[0].toString()}`);
     console.log(`@state bullScore: ${a.snapp.appState[1].toString()}`);
     console.log(`@state cowScore: ${a.snapp.appState[2].toString()}`);
     console.log(`@state currentRound:${a.snapp.appState[3].toString()}`);
-    console.log(`@state gameDone:${a.snapp.appState[4].toString()}`);
+    console.log(`@state gameOver:${a.snapp.appState[4].toString()}`);
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
   });
 
   console.log('Success!');
@@ -200,16 +221,4 @@ shutdown();
 //   //get ready for next round
 //   round++
 //   input.value = ''
-// }
-
-// function isOver(round: number) {
-//   if (bulls === secret.length) {
-//       finalResult.innerText = `You win!`
-//       return true
-//   } else if (round === MAXROUNDS) {
-//       finalResult.innerText = "That was your last guess, you lose!"
-//       return true
-//   }
-
-//   return false
 // }
