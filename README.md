@@ -1,4 +1,5 @@
 # Mina Snapp: BullsAndCows
+![This is an image](https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DzH4B5p9NYEY&psig=AOvVaw0JP0ceEgpOoffRbx2a2tHF&ust=1639379684176000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCIDs47Pb3fQCFQAAAAAdAAAAABAD)
 
 This is an implementation of the game **Bulls and Cows** using SnarkyJS
 For detailed explaination of the game check [here](https://pages.github.com/)
